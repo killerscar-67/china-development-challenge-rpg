@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { Fragment, useMemo, useState } from "react";
 import {
   ArrowRight,
   BookOpen,
@@ -158,6 +158,7 @@ function App() {
   const [finalLocked, setFinalLocked] = useState(false);
   const [exitText, setExitText] = useState("");
   const [mobileMenu, setMobileMenu] = useState(false);
+  const [language, setLanguage] = useState<"en" | "zh">("en");
 
   const addLog = (label: string, text: string, tone: LogEntry["tone"] = "muted") => {
     setLog((current) => [...current.slice(-5), { label, text, tone }]);
@@ -300,6 +301,49 @@ function App() {
               ? "Individual exit ticket: name the four reforms, complete the farmers' incentive chain, explain one other reform, and state what you still need help distinguishing."
               : "";
   const presentationNotes = Object.entries(responses).filter(([, value]) => value.trim()).map(([key, value]) => ({ key, value }));
+  const copy = language === "zh" ? {
+    appTitle: "中国发展挑战",
+    appSubtitle: "改革开放文字角色扮演游戏",
+    transform: "你的团队能否\n改变经济？",
+    titleLede: "带领发展团队探索激励、企业、绩效与全球联系。每个决定都会带来后果。",
+    enter: "进入模拟",
+    rolesTitle: "组建你的国家发展团队",
+    rolesBrief: "请在每个角色下写上同学姓名，然后共同识别问题、选择改革并预测影响。",
+    rolesPrompt: "你们是一支国家发展团队。",
+    startRound: "开始第一回合",
+    worksheet: "团队工作表 / ",
+    worksheetTitle: "写下你们的推理",
+    worksheetPlaceholder: "在这里写下小组答案……",
+    saved: "已保存于本次活动",
+    presentation: "展示你们的发展方案",
+    presentationSub: "把这张总结页作为发言提纲，在一分钟内解释你们的方案。",
+    problem: "问题",
+    effect: "预期影响",
+    reforms: "我们选择的两项改革",
+    team: "团队",
+    script: "发言稿",
+  } : {
+    appTitle: "China Development Challenge",
+    appSubtitle: "A text RPG about Reform and Opening-up",
+    transform: "Can your team\ntransform the economy?",
+    titleLede: "Lead a national development team through incentives, enterprise, performance, and global connection. Every decision earns a consequence.",
+    enter: "ENTER THE SIMULATION",
+    rolesTitle: "Form your National Development Team",
+    rolesBrief: "Write a name under each role, then use the team to identify the problem, choose a reform, and predict the effect.",
+    rolesPrompt: "You are a National Development Team.",
+    startRound: "START ROUND 1",
+    worksheet: "TEAM WORKSHEET / ",
+    worksheetTitle: "Write your reasoning",
+    worksheetPlaceholder: "Write your group's answer here...",
+    saved: "SAVED IN SESSION",
+    presentation: "Present your development strategy",
+    presentationSub: "Use this slide as your speaking outline. Your team can explain the plan in under one minute.",
+    problem: "PROBLEM",
+    effect: "EXPECTED EFFECT",
+    reforms: "OUR TWO REFORMS",
+    team: "TEAM",
+    script: "SPEAKING SCRIPT",
+  };
 
   return (
     <div className="game-shell">
@@ -348,10 +392,10 @@ function App() {
           <div className="story-screen">
             {phase === "title" && <div className="title-scene">
               <div className="title-art"><div className="art-orbit orbit-one" /><div className="art-orbit orbit-two" /><div className="art-sun" /><div className="art-land land-one" /><div className="art-land land-two" /><div className="art-label label-a">A</div><div className="art-label label-b">B</div><div className="art-label label-c">C</div><div className="art-label label-d">D</div></div>
-              <div className="title-copy"><p className="eyebrow"><Sparkles size={16} /> A TEXT RPG ABOUT ECONOMIC CHANGE</p><h2>Can your team<br /><em>transform the economy?</em></h2><p className="title-lede">Lead a national development team through incentives, enterprise, performance, and global connection. Every decision earns a consequence.</p><div className="title-meta"><span><Timer size={15} /> 30 MINUTES</span><span><Users size={15} /> TEAM PLAY</span><span><Trophy size={15} /> HIGH SCORE</span></div><AppButton onClick={beginSimulation}>ENTER THE SIMULATION <ArrowRight size={18} /></AppButton></div>
+              <div className="title-copy"><div className="language-switcher"><span>{copy.appSubtitle}</span><button onClick={() => setLanguage(language === "en" ? "zh" : "en")} aria-label="Toggle language">{language === "en" ? "中文" : "English"}</button></div><p className="eyebrow"><Sparkles size={16} /> {language === "zh" ? "改革开放文字角色扮演游戏" : "A TEXT RPG ABOUT ECONOMIC CHANGE"}</p><h2>{copy.transform.split("\n").map((line, index) => <Fragment key={line}>{index > 0 && <br />}<em>{line}</em></Fragment>)}</h2><p className="title-lede">{copy.titleLede}</p><div className="title-meta"><span><Timer size={15} /> {language === "zh" ? "30 分钟" : "30 MINUTES"}</span><span><Users size={15} /> {language === "zh" ? "团队合作" : "TEAM PLAY"}</span><span><Trophy size={15} /> {language === "zh" ? "争取高分" : "HIGH SCORE"}</span></div><AppButton onClick={beginSimulation}>{copy.enter} <ArrowRight size={18} /></AppButton></div>
             </div>}
 
-            {phase === "roles" && <div className="scene-stack"><div className="scene-intro"><span className="scene-number">01</span><div><p className="eyebrow">MISSION BRIEFING</p><h2>You are a National Development Team.</h2><p>Write a name under each role, then use the team to identify the problem, choose a reform, and predict the effect.</p></div></div><div className="role-grid">{roleOptions.map(({ name, icon: Icon, desc }) => { const assigned = roles.includes(name) || !!roleNames[name]?.trim(); return <div key={name} className={`role-card ${assigned ? "selected" : ""}`}><div className="role-icon"><Icon size={21} /></div><div><b>{name}</b><p>{desc}</p></div><input className="role-name-input" aria-label={`${name} student name`} placeholder="Student name" value={roleNames[name] || ""} onChange={(event) => { const value = event.target.value; setRoleNames((current) => ({ ...current, [name]: value })); if (value.trim() && !roles.includes(name)) setRoles((current) => [...current, name]); }} /><span className="role-status">{assigned ? <Check size={16} /> : <span>+</span>}</span></div>; })}</div><div className="scene-footer"><span>{roleOptions.filter(({ name }) => roles.includes(name) || roleNames[name]?.trim()).length} named roles assigned / write the student name for each role</span><AppButton onClick={confirmRoles}>START ROUND 1 <ArrowRight size={17} /></AppButton></div></div>}
+            {phase === "roles" && <div className="scene-stack"><div className="scene-intro"><span className="scene-number">01</span><div><p className="eyebrow">{language === "zh" ? "任务简报" : "MISSION BRIEFING"}</p><h2>{copy.rolesPrompt}</h2><p>{copy.rolesBrief}</p></div></div><div className="role-grid">{roleOptions.map(({ name, icon: Icon, desc }) => { const assigned = roles.includes(name) || !!roleNames[name]?.trim(); return <div key={name} className={`role-card ${assigned ? "selected" : ""}`}><div className="role-icon"><Icon size={21} /></div><div><b>{language === "zh" ? ({"Team Leader":"团队负责人","Economic Adviser":"经济顾问","People's Representative":"人民代表","Recorder":"记录员","Spokesperson":"发言人"} as Record<string,string>)[name] : name}</b><p>{desc}</p></div><input className="role-name-input" aria-label={`${name} student name`} placeholder={language === "zh" ? "同学姓名" : "Student name"} value={roleNames[name] || ""} onChange={(event) => { const value = event.target.value; setRoleNames((current) => ({ ...current, [name]: value })); if (value.trim() && !roles.includes(name)) setRoles((current) => [...current, name]); }} /><span className="role-status">{assigned ? <Check size={16} /> : <span>+</span>}</span></div>; })}</div><div className="scene-footer"><span>{roleOptions.filter(({ name }) => roles.includes(name) || roleNames[name]?.trim()).length} {language === "zh" ? "个角色已填写姓名" : "named roles assigned / write the student name for each role"}</span><AppButton onClick={confirmRoles}>{copy.startRound} <ArrowRight size={17} /></AppButton></div></div>}
 
             {phase === "rural" && <div className="scene-stack"><div className="round-kicker"><span className="chapter-stamp">ROUND 1</span><span className="eyebrow">THE PRODUCTION CHALLENGE</span></div><div className="rural-intro"><div><h2>Five households produce <em>50 units</em> of crops.</h2><p>The crops are shared equally. Everyone receives <b>10 units</b>. But the households did not contribute equally.</p></div><div className="crop-counter"><Wheat size={30} /><strong>50</strong><span>UNITS</span></div></div><div className="household-table"><div className="table-row table-head"><span>HOUSEHOLD</span><span>CONTRIBUTION</span><span>RECEIVED</span></div>{[["A", "Extremely hard-working", "10 units"], ["B", "Hard-working", "10 units"], ["C", "Normal", "10 units"], ["D", "Very little work", "10 units"], ["E", "Almost no work", "10 units"]].map(([house, effort, received], i) => <div key={house} className={`table-row ${i === 0 ? "highlight-row" : ""}`}><span className="house-label">{house === "A" ? "HOUSEHOLD A" : house}</span><span className={i === 0 ? "effort-hard" : ""}>{effort}</span><span>{received}</span></div>)}</div><div className="decision-bar"><div><p className="eyebrow">YOU ARE HOUSEHOLD A</p><b>You worked the hardest. What do you do next year?</b></div><div className="decision-actions"><button onClick={() => chooseRural("Work harder")} className={ruralChoice === "Work harder" ? "picked positive" : ""} disabled={!!ruralChoice}>Work harder</button><button onClick={() => chooseRural("Work the same")} className={ruralChoice === "Work the same" ? "picked neutral" : ""} disabled={!!ruralChoice}>Work the same</button><button onClick={() => chooseRural("Work less")} className={ruralChoice === "Work less" ? "picked negative" : ""} disabled={!!ruralChoice}>Work less</button></div></div>{ruralChoice && <div className="scene-footer"><span className="reveal-line"><Lightbulb size={16} /> Your prediction is logged. Now examine the system.</span><AppButton onClick={() => advance("think")}>THINK IT THROUGH <ArrowRight size={17} /></AppButton></div>}</div>}
 
@@ -368,9 +412,9 @@ function App() {
             {phase === "results" && <div className="results-scene"><div className="results-hero"><div className="trophy-ring"><Trophy size={33} /></div><div><p className="eyebrow">SIMULATION COMPLETE</p><h2>Development results</h2><p>{score >= 18 ? "Your team built a high-confidence reform strategy." : score >= 12 ? "Your team found the pattern and adapted well." : "Your team has a foundation. Replay to sharpen the connections."}</p></div><div className="final-score"><span>FINAL SCORE</span><b>{score}</b><small>PTS</small></div></div><div className="results-grid"><div className="result-card"><p className="eyebrow">THE FOUR REFORMS</p>{(Object.entries(reforms) as [ReformKey, typeof reforms[ReformKey]][]).map(([key, item]) => <div className="result-row" key={key}><span style={{ color: item.accent }}>{key}</span><b>{item.title}</b><span>{item.effect}</span></div>)}</div><div className="result-card pattern-card"><p className="eyebrow">THE BIG PICTURE</p><div className="pattern-flow"><b>PROBLEM</b><ArrowRight size={15} /><b>REFORM</b><ArrowRight size={15} /><b>EFFECT</b></div><p>Do not just memorize the reform. Understand <em>why it happened</em> and what changed for people, enterprises, or the wider economy.</p><div className="tag-row"><span><Check size={14} /> incentives</span><span><Check size={14} /> enterprise</span><span><Check size={14} /> connection</span></div></div></div><div className="results-footer"><div><p className="eyebrow">TEAM LOG</p><p>Highest score wins the challenge. Keep your exit ticket as evidence of your reasoning.</p></div><AppButton variant="quiet" onClick={resetGame}><RotateCcw size={16} /> REPLAY SIMULATION</AppButton></div></div>}
           </div>
 
-          {notebookKey && phase !== "results" && <section className="field-notebook"><div className="notebook-heading"><div><p className="eyebrow"><BookOpen size={14} /> TEAM WORKSHEET / {phase.toUpperCase()}</p><h3>Write your reasoning</h3></div><span className="notebook-status">SAVED IN SESSION</span></div><p className="notebook-prompt">{notebookPrompt}</p><textarea value={responses[notebookKey] || ""} onChange={(event) => updateResponse(notebookKey, event.target.value)} placeholder="Write your group's answer here..." aria-label="Team worksheet response" /></section>}
+          {notebookKey && phase !== "results" && <section className="field-notebook"><div className="notebook-heading"><div><p className="eyebrow"><BookOpen size={14} /> {copy.worksheet}{phase.toUpperCase()}</p><h3>{copy.worksheetTitle}</h3></div><span className="notebook-status">{copy.saved}</span></div><p className="notebook-prompt">{language === "zh" ? "请根据上方情境和工作纸问题，写下你们的理由、答案或预期影响。" : notebookPrompt}</p><textarea value={responses[notebookKey] || ""} onChange={(event) => updateResponse(notebookKey, event.target.value)} placeholder={copy.worksheetPlaceholder} aria-label="Team worksheet response" /></section>}
 
-          {phase === "results" && <section className="presentation-plan"><div className="presentation-heading"><div><p className="eyebrow"><Sparkles size={14} /> PRESENTATION MODE / TEAM PLAN</p><h3>Present your development strategy</h3><p>Use this slide as your speaking outline. Your team can explain the plan in under one minute.</p></div><div className="presentation-score"><span>POINTS</span><b>{score}</b></div></div><div className="plan-grid"><div><span className="plan-label">TEAM</span><strong>{Object.values(roleNames).filter((name) => name.trim()).join(" · ") || "Add role names in the opening scene"}</strong></div><div><span className="plan-label">OUR TWO REFORMS</span><strong>{selectedReforms.length ? selectedReforms.map((key) => reforms[key].title).join(" + ") : "No reforms recorded"}</strong></div><div><span className="plan-label">PROBLEM</span><p>{responses.rural || "No Round 1 reasoning recorded."}</p></div><div><span className="plan-label">EXPECTED EFFECT</span><p>{responses.reforms || responses.think || "No expected effect recorded."}</p></div></div><div className="plan-script"><span className="plan-label">SPEAKING SCRIPT</span><p>“We identified <b>{responses.rural ? "a problem with production incentives" : "the main development problem"}</b>. We chose <b>{selectedReforms.map((key) => reforms[key].title).join(" and ") || "our selected reforms"}</b> because they respond to the problem. We expect the effect to be <b>{responses.reforms || "higher motivation, stronger enterprise performance, or wider economic connections"}</b>.”</p></div>{presentationNotes.length > 0 && <div className="saved-notes"><span className="plan-label">SAVED TEAM NOTES</span><span>{presentationNotes.length} response{presentationNotes.length === 1 ? "" : "s"} captured across the campaign.</span></div>}</section>}
+          {phase === "results" && <section className="presentation-plan"><div className="presentation-heading"><div><p className="eyebrow"><Sparkles size={14} /> {language === "zh" ? "展示模式 / 团队方案" : "PRESENTATION MODE / TEAM PLAN"}</p><h3>{copy.presentation}</h3><p>{copy.presentationSub}</p></div><div className="presentation-score"><span>{language === "zh" ? "得分" : "POINTS"}</span><b>{score}</b></div></div><div className="plan-grid"><div><span className="plan-label">{copy.team}</span><strong>{Object.values(roleNames).filter((name) => name.trim()).join(" · ") || (language === "zh" ? "请在开始场景填写角色姓名" : "Add role names in the opening scene")}</strong></div><div><span className="plan-label">{copy.reforms}</span><strong>{selectedReforms.length ? selectedReforms.map((key) => reforms[key].title).join(" + ") : (language === "zh" ? "尚未记录改革" : "No reforms recorded")}</strong></div><div><span className="plan-label">{copy.problem}</span><p>{responses.rural || (language === "zh" ? "尚未记录第一回合的推理。" : "No Round 1 reasoning recorded.")}</p></div><div><span className="plan-label">{copy.effect}</span><p>{responses.reforms || responses.think || (language === "zh" ? "尚未记录预期影响。" : "No expected effect recorded.")}</p></div></div><div className="plan-script"><span className="plan-label">{copy.script}</span><p>{language === "zh" ? <>“我们发现了<b>{responses.rural ? "生产激励不足的问题" : "一个主要发展问题"}</b>。我们选择了<b>{selectedReforms.map((key) => reforms[key].title).join("和") || "这些改革"}</b>，因为它们能够回应这个问题。我们预期的影响是<b>{responses.reforms || "提高积极性、改善企业绩效或扩大经济联系"}</b>。”</> : <>“We identified <b>{responses.rural ? "a problem with production incentives" : "the main development problem"}</b>. We chose <b>{selectedReforms.map((key) => reforms[key].title).join(" and ") || "our selected reforms"}</b> because they respond to the problem. We expect the effect to be <b>{responses.reforms || "higher motivation, stronger enterprise performance, or wider economic connections"}</b>.”</>}</p></div>{presentationNotes.length > 0 && <div className="saved-notes"><span className="plan-label">{language === "zh" ? "已保存的团队笔记" : "SAVED TEAM NOTES"}</span><span>{presentationNotes.length} {language === "zh" ? "条活动记录已保存。" : `response${presentationNotes.length === 1 ? "" : "s"} captured across the campaign.`}</span></div>}</section>}
 
           <div className="terminal-log"><div className="terminal-title"><span className="status-dot" /> DECISION LOG</div><div className="log-lines">{log.map((entry, index) => <div className={`log-line ${entry.tone || ""}`} key={`${entry.label}-${index}`}><span>[{entry.label}]</span><p>{entry.text}</p></div>)}</div></div>
         </section>
