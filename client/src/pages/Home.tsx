@@ -149,6 +149,7 @@ function App() {
   const [ruralChoice, setRuralChoice] = useState<string | null>(null);
   const [thinkChoice, setThinkChoice] = useState<string | null>(null);
   const [selectedReforms, setSelectedReforms] = useState<ReformKey[]>([]);
+  const [responses, setResponses] = useState<Record<string, string>>({});
   const [challengeIndex, setChallengeIndex] = useState(0);
   const [challengeAnswer, setChallengeAnswer] = useState<ReformKey | null>(null);
   const [challengeLocked, setChallengeLocked] = useState(false);
@@ -160,6 +161,10 @@ function App() {
 
   const addLog = (label: string, text: string, tone: LogEntry["tone"] = "muted") => {
     setLog((current) => [...current.slice(-5), { label, text, tone }]);
+  };
+
+  const updateResponse = (key: string, value: string) => {
+    setResponses((current) => ({ ...current, [key]: value }));
   };
 
   const advance = (next: Phase) => {
@@ -271,7 +276,7 @@ function App() {
   const resetGame = () => {
     setPhase("title");
     setRoles([]); setRoleNames({}); setScore(0); setLog([{ label: "SYSTEM", text: "Simulation reset. Awaiting a National Development Team.", tone: "muted" }]);
-    setRuralChoice(null); setThinkChoice(null); setSelectedReforms([]); setChallengeIndex(0); setChallengeAnswer(null); setChallengeLocked(false); setFinalIndex(0); setFinalAnswer(null); setFinalLocked(false); setExitText("");
+    setRuralChoice(null); setThinkChoice(null); setSelectedReforms([]); setResponses({}); setChallengeIndex(0); setChallengeAnswer(null); setChallengeLocked(false); setFinalIndex(0); setFinalAnswer(null); setFinalLocked(false); setExitText("");
   };
 
   const progress = useMemo(() => {
@@ -280,6 +285,21 @@ function App() {
   }, [phase]);
 
   const canFinishExit = exitText.trim().length >= 16;
+  const notebookKey = phase === "rural" ? "rural" : phase === "think" ? "think" : phase === "reforms" ? "reforms" : phase === "challenge" ? `challenge-${challengeIndex}` : phase === "final" ? "final" : phase === "exit" ? "exit" : "";
+  const notebookPrompt = phase === "rural"
+    ? "Task 1–3: Would Household A continue working extremely hard? Explain your choice. What problem might happen if rewards stay similar, and what might happen to production in the long run?"
+    : phase === "think"
+      ? "Explain the connection: similar rewards despite unequal contribution → willingness to work → agricultural production."
+      : phase === "reforms"
+        ? "Group challenge: Which two reforms are most urgent? What problem is each trying to solve, and what effect do you expect?"
+        : phase === "challenge"
+          ? challengeIndex === 1 ? "Challenge 2: Write TWO possible benefits of township and village enterprises or new non-agricultural employment opportunities." : `Challenge ${challengeIndex + 1}: Explain why your chosen reform connects to this problem. Include the expected effect.`
+          : phase === "final"
+            ? "Rapid matching notes: record your answers for Questions 1–4, then choose one answer to explain as Problem → Reform → Effect."
+            : phase === "exit"
+              ? "Individual exit ticket: name the four reforms, complete the farmers' incentive chain, explain one other reform, and state what you still need help distinguishing."
+              : "";
+  const presentationNotes = Object.entries(responses).filter(([, value]) => value.trim()).map(([key, value]) => ({ key, value }));
 
   return (
     <div className="game-shell">
@@ -343,10 +363,14 @@ function App() {
 
             {phase === "final" && (() => { const q = finalQuestions[finalIndex]; return <div className="scene-stack centered-scene"><div className="final-head"><div><p className="eyebrow">FINAL ROUND / NO DISCUSSION</p><h2>Match the reform in five seconds.</h2></div><div className="rapid-number">0{finalIndex + 1}</div></div><div className="rapid-prompt"><span>{q.prompt}</span><div className="countdown">5... 4... 3... 2... 1...</div></div><div className="choice-grid final-grid">{(Object.entries(reforms) as [ReformKey, typeof reforms[ReformKey]][]).map(([key, item]) => { const Icon = item.icon; return <button key={key} className={`mini-choice ${finalAnswer === key ? "selected" : ""} ${finalLocked && key === q.answer ? "correct" : ""} ${finalLocked && finalAnswer === key && key !== q.answer ? "incorrect" : ""}`} onClick={() => !finalLocked && setFinalAnswer(key)}><span className="choice-letter" style={{ color: item.accent }}>{key}</span><Icon size={18} /><span>{item.title}</span>{finalLocked && key === q.answer && <Check size={16} />}</button>; })}</div>{finalLocked && <div className="answer-note"><Sparkles size={17} /><span><b>ANSWER {q.answer}</b> — {reforms[q.answer].title} is the best fit.</span></div>}<div className="scene-footer"><span>Question {finalIndex + 1} of {finalQuestions.length}</span>{!finalLocked ? <AppButton onClick={submitFinal} disabled={!finalAnswer}><Zap size={17} /> SHOW ANSWER</AppButton> : <AppButton onClick={nextFinal}>{finalIndex === finalQuestions.length - 1 ? "OPEN EXIT TICKET" : "NEXT QUESTION"} <ArrowRight size={17} /></AppButton>}</div></div>; })()}
 
-            {phase === "exit" && <div className="scene-stack centered-scene"><div className="scene-number">06</div><p className="eyebrow">INDIVIDUAL WORK / 02:00</p><h2>Complete the chain in your own words.</h2><p className="center-lede">Name the four reforms, then explain one connection from <b>problem → reform → effect</b>.</p><div className="exit-chain"><span>PROBLEM</span><ArrowRight size={18} /><span>REFORM</span><ArrowRight size={18} /><span>EFFECT</span></div><textarea value={exitText} onChange={(event) => setExitText(event.target.value)} placeholder="Example: Farmers lacked production incentives, so rural reform linked income more closely to household effort..." /><div className="scene-footer"><span>{exitText.trim().length}/16 characters minimum</span><AppButton onClick={() => advance("results")} disabled={!canFinishExit}><Trophy size={17} /> SEE DEVELOPMENT RESULTS</AppButton></div></div>}
+            {phase === "exit" && <div className="scene-stack centered-scene"><div className="scene-number">06</div><p className="eyebrow">INDIVIDUAL WORK / 02:00</p><h2>Complete the chain in your own words.</h2><p className="center-lede">Name the four reforms, then explain one connection from <b>problem → reform → effect</b>.</p><div className="exit-chain"><span>PROBLEM</span><ArrowRight size={18} /><span>REFORM</span><ArrowRight size={18} /><span>EFFECT</span></div><textarea value={exitText} onChange={(event) => { setExitText(event.target.value); updateResponse("exit", event.target.value); }} placeholder="Example: Farmers lacked production incentives, so rural reform linked income more closely to household effort..." /><div className="scene-footer"><span>{exitText.trim().length}/16 characters minimum</span><AppButton onClick={() => advance("results")} disabled={!canFinishExit}><Trophy size={17} /> SEE DEVELOPMENT RESULTS</AppButton></div></div>}
 
             {phase === "results" && <div className="results-scene"><div className="results-hero"><div className="trophy-ring"><Trophy size={33} /></div><div><p className="eyebrow">SIMULATION COMPLETE</p><h2>Development results</h2><p>{score >= 18 ? "Your team built a high-confidence reform strategy." : score >= 12 ? "Your team found the pattern and adapted well." : "Your team has a foundation. Replay to sharpen the connections."}</p></div><div className="final-score"><span>FINAL SCORE</span><b>{score}</b><small>PTS</small></div></div><div className="results-grid"><div className="result-card"><p className="eyebrow">THE FOUR REFORMS</p>{(Object.entries(reforms) as [ReformKey, typeof reforms[ReformKey]][]).map(([key, item]) => <div className="result-row" key={key}><span style={{ color: item.accent }}>{key}</span><b>{item.title}</b><span>{item.effect}</span></div>)}</div><div className="result-card pattern-card"><p className="eyebrow">THE BIG PICTURE</p><div className="pattern-flow"><b>PROBLEM</b><ArrowRight size={15} /><b>REFORM</b><ArrowRight size={15} /><b>EFFECT</b></div><p>Do not just memorize the reform. Understand <em>why it happened</em> and what changed for people, enterprises, or the wider economy.</p><div className="tag-row"><span><Check size={14} /> incentives</span><span><Check size={14} /> enterprise</span><span><Check size={14} /> connection</span></div></div></div><div className="results-footer"><div><p className="eyebrow">TEAM LOG</p><p>Highest score wins the challenge. Keep your exit ticket as evidence of your reasoning.</p></div><AppButton variant="quiet" onClick={resetGame}><RotateCcw size={16} /> REPLAY SIMULATION</AppButton></div></div>}
           </div>
+
+          {notebookKey && phase !== "results" && <section className="field-notebook"><div className="notebook-heading"><div><p className="eyebrow"><BookOpen size={14} /> TEAM WORKSHEET / {phase.toUpperCase()}</p><h3>Write your reasoning</h3></div><span className="notebook-status">SAVED IN SESSION</span></div><p className="notebook-prompt">{notebookPrompt}</p><textarea value={responses[notebookKey] || ""} onChange={(event) => updateResponse(notebookKey, event.target.value)} placeholder="Write your group's answer here..." aria-label="Team worksheet response" /></section>}
+
+          {phase === "results" && <section className="presentation-plan"><div className="presentation-heading"><div><p className="eyebrow"><Sparkles size={14} /> PRESENTATION MODE / TEAM PLAN</p><h3>Present your development strategy</h3><p>Use this slide as your speaking outline. Your team can explain the plan in under one minute.</p></div><div className="presentation-score"><span>POINTS</span><b>{score}</b></div></div><div className="plan-grid"><div><span className="plan-label">TEAM</span><strong>{Object.values(roleNames).filter((name) => name.trim()).join(" · ") || "Add role names in the opening scene"}</strong></div><div><span className="plan-label">OUR TWO REFORMS</span><strong>{selectedReforms.length ? selectedReforms.map((key) => reforms[key].title).join(" + ") : "No reforms recorded"}</strong></div><div><span className="plan-label">PROBLEM</span><p>{responses.rural || "No Round 1 reasoning recorded."}</p></div><div><span className="plan-label">EXPECTED EFFECT</span><p>{responses.reforms || responses.think || "No expected effect recorded."}</p></div></div><div className="plan-script"><span className="plan-label">SPEAKING SCRIPT</span><p>“We identified <b>{responses.rural ? "a problem with production incentives" : "the main development problem"}</b>. We chose <b>{selectedReforms.map((key) => reforms[key].title).join(" and ") || "our selected reforms"}</b> because they respond to the problem. We expect the effect to be <b>{responses.reforms || "higher motivation, stronger enterprise performance, or wider economic connections"}</b>.”</p></div>{presentationNotes.length > 0 && <div className="saved-notes"><span className="plan-label">SAVED TEAM NOTES</span><span>{presentationNotes.length} response{presentationNotes.length === 1 ? "" : "s"} captured across the campaign.</span></div>}</section>}
 
           <div className="terminal-log"><div className="terminal-title"><span className="status-dot" /> DECISION LOG</div><div className="log-lines">{log.map((entry, index) => <div className={`log-line ${entry.tone || ""}`} key={`${entry.label}-${index}`}><span>[{entry.label}]</span><p>{entry.text}</p></div>)}</div></div>
         </section>
