@@ -137,3 +137,9 @@ button:disabled { cursor: not-allowed; }
 @media (prefers-reduced-motion: reduce) { *, *:before, *:after { scroll-behavior: auto !important; transition-duration: .01ms !important; } }
 
 .title-art { background-image: linear-gradient(180deg, rgba(10,23,40,.28), rgba(10,23,40,.75)), url('/manus-storage/cdc-rpg-hero_d27c4991.png'); }
+
+.role-name-input { width: 100%; margin-top: 13px; border: 1px solid #d7d4cd; border-radius: 7px; background: rgba(255,255,255,.74); padding: 8px 9px; color: var(--navy); font-size: 11px; outline: none; }
+.role-name-input::placeholder { color: #a6acae; }
+.role-name-input:focus { border-color: var(--gold); box-shadow: 0 0 0 3px rgba(242,184,75,.16); }
+.role-status { position: absolute; top: 13px; right: 13px; color: var(--green); }
+.role-status > span { color: #adb2af; font-size: 20px; font-weight: 300; }

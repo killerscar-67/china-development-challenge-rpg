@@ -141,6 +141,7 @@ function AppButton({ children, onClick, variant = "primary", disabled = false }:
 function App() {
   const [phase, setPhase] = useState<Phase>("title");
   const [roles, setRoles] = useState<string[]>([]);
+  const [roleNames, setRoleNames] = useState<Record<string, string>>({});
   const [score, setScore] = useState(0);
   const [log, setLog] = useState<LogEntry[]>([
     { label: "SYSTEM", text: "Simulation loaded. Awaiting a National Development Team.", tone: "muted" },
@@ -176,7 +177,9 @@ function App() {
   };
 
   const confirmRoles = () => {
-    addLog("TEAM", `${roles.length || 1} role${roles.length === 1 ? "" : "s"} assigned. The village is waiting.`, "green");
+    const namedRoles = roleOptions.filter(({ name }) => roles.includes(name) || roleNames[name]?.trim()).map(({ name }) => name);
+    setRoles(namedRoles);
+    addLog("TEAM", `${namedRoles.length || 1} role${namedRoles.length === 1 ? "" : "s"} assigned. The village is waiting.`, "green");
     advance("rural");
   };
 
@@ -267,7 +270,7 @@ function App() {
 
   const resetGame = () => {
     setPhase("title");
-    setRoles([]); setScore(0); setLog([{ label: "SYSTEM", text: "Simulation reset. Awaiting a National Development Team.", tone: "muted" }]);
+    setRoles([]); setRoleNames({}); setScore(0); setLog([{ label: "SYSTEM", text: "Simulation reset. Awaiting a National Development Team.", tone: "muted" }]);
     setRuralChoice(null); setThinkChoice(null); setSelectedReforms([]); setChallengeIndex(0); setChallengeAnswer(null); setChallengeLocked(false); setFinalIndex(0); setFinalAnswer(null); setFinalLocked(false); setExitText("");
   };
 
@@ -328,7 +331,7 @@ function App() {
               <div className="title-copy"><p className="eyebrow"><Sparkles size={16} /> A TEXT RPG ABOUT ECONOMIC CHANGE</p><h2>Can your team<br /><em>transform the economy?</em></h2><p className="title-lede">Lead a national development team through incentives, enterprise, performance, and global connection. Every decision earns a consequence.</p><div className="title-meta"><span><Timer size={15} /> 30 MINUTES</span><span><Users size={15} /> TEAM PLAY</span><span><Trophy size={15} /> HIGH SCORE</span></div><AppButton onClick={beginSimulation}>ENTER THE SIMULATION <ArrowRight size={18} /></AppButton></div>
             </div>}
 
-            {phase === "roles" && <div className="scene-stack"><div className="scene-intro"><span className="scene-number">01</span><div><p className="eyebrow">MISSION BRIEFING</p><h2>You are a National Development Team.</h2><p>Economic problems are arriving one after another. Pick roles now, then use the team to identify the problem, choose a reform, and predict the effect.</p></div></div><div className="role-grid">{roleOptions.map(({ name, icon: Icon, desc }) => <button key={name} className={`role-card ${roles.includes(name) ? "selected" : ""}`} onClick={() => toggleRole(name)}><div className="role-icon"><Icon size={21} /></div><div><b>{name}</b><p>{desc}</p></div>{roles.includes(name) ? <Check size={18} className="role-check" /> : <span className="role-add">+</span>}</button>)}</div><div className="scene-footer"><span>{roles.length} roles assigned / choose as many as your team needs</span><AppButton onClick={confirmRoles}>START ROUND 1 <ArrowRight size={17} /></AppButton></div></div>}
+            {phase === "roles" && <div className="scene-stack"><div className="scene-intro"><span className="scene-number">01</span><div><p className="eyebrow">MISSION BRIEFING</p><h2>You are a National Development Team.</h2><p>Write a name under each role, then use the team to identify the problem, choose a reform, and predict the effect.</p></div></div><div className="role-grid">{roleOptions.map(({ name, icon: Icon, desc }) => { const assigned = roles.includes(name) || !!roleNames[name]?.trim(); return <div key={name} className={`role-card ${assigned ? "selected" : ""}`}><div className="role-icon"><Icon size={21} /></div><div><b>{name}</b><p>{desc}</p></div><input className="role-name-input" aria-label={`${name} student name`} placeholder="Student name" value={roleNames[name] || ""} onChange={(event) => { const value = event.target.value; setRoleNames((current) => ({ ...current, [name]: value })); if (value.trim() && !roles.includes(name)) setRoles((current) => [...current, name]); }} /><span className="role-status">{assigned ? <Check size={16} /> : <span>+</span>}</span></div>; })}</div><div className="scene-footer"><span>{roleOptions.filter(({ name }) => roles.includes(name) || roleNames[name]?.trim()).length} named roles assigned / write the student name for each role</span><AppButton onClick={confirmRoles}>START ROUND 1 <ArrowRight size={17} /></AppButton></div></div>}
 
             {phase === "rural" && <div className="scene-stack"><div className="round-kicker"><span className="chapter-stamp">ROUND 1</span><span className="eyebrow">THE PRODUCTION CHALLENGE</span></div><div className="rural-intro"><div><h2>Five households produce <em>50 units</em> of crops.</h2><p>The crops are shared equally. Everyone receives <b>10 units</b>. But the households did not contribute equally.</p></div><div className="crop-counter"><Wheat size={30} /><strong>50</strong><span>UNITS</span></div></div><div className="household-table"><div className="table-row table-head"><span>HOUSEHOLD</span><span>CONTRIBUTION</span><span>RECEIVED</span></div>{[["A", "Extremely hard-working", "10 units"], ["B", "Hard-working", "10 units"], ["C", "Normal", "10 units"], ["D", "Very little work", "10 units"], ["E", "Almost no work", "10 units"]].map(([house, effort, received], i) => <div key={house} className={`table-row ${i === 0 ? "highlight-row" : ""}`}><span className="house-label">{house === "A" ? "HOUSEHOLD A" : house}</span><span className={i === 0 ? "effort-hard" : ""}>{effort}</span><span>{received}</span></div>)}</div><div className="decision-bar"><div><p className="eyebrow">YOU ARE HOUSEHOLD A</p><b>You worked the hardest. What do you do next year?</b></div><div className="decision-actions"><button onClick={() => chooseRural("Work harder")} className={ruralChoice === "Work harder" ? "picked positive" : ""} disabled={!!ruralChoice}>Work harder</button><button onClick={() => chooseRural("Work the same")} className={ruralChoice === "Work the same" ? "picked neutral" : ""} disabled={!!ruralChoice}>Work the same</button><button onClick={() => chooseRural("Work less")} className={ruralChoice === "Work less" ? "picked negative" : ""} disabled={!!ruralChoice}>Work less</button></div></div>{ruralChoice && <div className="scene-footer"><span className="reveal-line"><Lightbulb size={16} /> Your prediction is logged. Now examine the system.</span><AppButton onClick={() => advance("think")}>THINK IT THROUGH <ArrowRight size={17} /></AppButton></div>}</div>}
 
